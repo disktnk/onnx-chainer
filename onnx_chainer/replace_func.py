@@ -145,7 +145,23 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
         ret = wrapped.apply(inputs)
         if len(ret) > 1:
             return ret
-        return ret[0]
+        ret0 = ret[0]
+        print(ret0[0])
+        import types
+        class DDD(object):
+            def __init__(self, a):
+                self.a = a
+            @as_funcnode('GetItem')
+            def __call__(self, i):
+                return self.data[i]
+        @as_funcnode('GetItem')
+        def getitem(self, i):
+            return self.data[i]
+        from unittest.mock import MagicMock
+        from unittest.mock import create_autospec
+        ret0.__getitem__ = MagicMock(return_value=3)
+        print(ret0[0])
+        return ret0
 
     chainer.utils.experimental('as_funcnode')
     return _wrapper

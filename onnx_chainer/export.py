@@ -263,7 +263,7 @@ def _export(model, args, filename, export_params, graph_name, save_text,
 
     for name, var in network_inputs.items():
         input_tensors.append(helper.make_tensor_value_info(
-            name, NP_TYPE_TO_TENSOR_TYPE[var.dtype], var.shape))
+            name, NP_TYPE_TO_TENSOR_TYPE[var.dtype], var.shape.array.tolist()))
 
     if external_converters:
         chainer.utils.experimental('external_converters')

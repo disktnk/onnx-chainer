@@ -243,3 +243,40 @@ class TestUnusedLink(ONNXModelTest):
             self.expect(model, x)
             assert len(w) == 1
             assert '/l2/W' in str(w[-1].message)
+
+
+def test_aaa():
+    model = chainer.Sequential(
+        L.Convolution2D(None, 16, 5, 1, 2),
+        F.relu,
+        L.Convolution2D(16, 8, 5, 1, 2),
+        F.relu,
+        L.Convolution2D(8, 5, 5, 1, 2),
+        F.relu,
+        L.Linear(None, 100),
+        F.relu,
+        L.Linear(100, 10)
+    )
+    x = np.random.rand(10, 3, 28, 28).astype(np.float32)
+
+    import os
+    from onnx_chainer.testing.get_test_data_set import gen_test_data_set
+    from onnx_chainer.onnx_helper import write_tensor_pb
+    from onnx_chainer.testing.test_onnxruntime import check_model_expect
+    # from onnx_chainer.testing.test_mxnet import check_model_expect
+
+    from onnx_chainer.variable import VVariable
+
+    x = VVariable(x)
+    path = gen_test_data_set(model, x, 'aaa', 10)
+    print(path)
+
+    x2 = np.random.rand(5, 3, 28, 28).astype(np.float32)
+    x2 = VVariable(x2)
+    path2 = gen_test_data_set(model, x2, 'aaa2', 10)
+    print(path2)
+    # import shutil
+    # shutil.copy(os.path.join(path, 'model.onnx'), os.path.join(path2, 'model.onnx'))
+
+    check_model_expect(path)
+    check_model_expect(path2)
