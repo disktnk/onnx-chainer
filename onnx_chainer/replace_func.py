@@ -146,7 +146,7 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
         if len(ret) > 1:
             return ret
         ret0 = ret[0]
-        print(ret0[0])
+        # print(ret0[0])
         import types
         class DDD(object):
             def __init__(self, a):
@@ -156,11 +156,18 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
                 return self.data[i]
         @as_funcnode('GetItem')
         def getitem(self, i):
+            print('--ggggg')
+            import numpy as np
             return self.data[i]
         from unittest.mock import MagicMock
         from unittest.mock import create_autospec
-        ret0.__getitem__ = MagicMock(return_value=3)
-        print(ret0[0])
+        import types
+        # setattr(ret0, ret0.__getitem__.__name__, types.MethodType(getitem, ret0))
+        # chainer.Variable.__getitem__ = getitem
+        if name == 'Shape':
+            from onnx_chainer.variable import ShapeVariable
+            ret0 = ShapeVariable(ret0)
+        # print(ret0[0])
         return ret0
 
     chainer.utils.experimental('as_funcnode')

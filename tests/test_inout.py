@@ -263,16 +263,26 @@ def test_aaa():
     from onnx_chainer.testing.get_test_data_set import gen_test_data_set
     from onnx_chainer.onnx_helper import write_tensor_pb
     from onnx_chainer.testing.test_onnxruntime import check_model_expect
+    from onnx_chainer.replace_func import as_funcnode
     # from onnx_chainer.testing.test_mxnet import check_model_expect
 
-    from onnx_chainer.variable import VVariable
+    # from onnx_chainer.variable import VVariable
 
-    x = VVariable(x)
+    
+    @property
+    @as_funcnode('Shape')
+    def shape(self):
+        print('Shape@@@', self.xp.asarray(self.array.shape,dtype='i'))
+        return self.xp.asarray(self.array.shape)
+
+    import types
+    chainer.Variable.shape = shape
+
     path = gen_test_data_set(model, x, 'aaa', 10)
     print(path)
 
     x2 = np.random.rand(5, 3, 28, 28).astype(np.float32)
-    x2 = VVariable(x2)
+    # x2 = VVariable(x2)
     path2 = gen_test_data_set(model, x2, 'aaa2', 10)
     print(path2)
     # import shutil
