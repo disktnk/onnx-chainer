@@ -45,6 +45,7 @@ _supported_function_node_set = {
     'ConvolutionND',
     'Deconvolution2DFunction',
     'DeconvolutionND',
+    'DynamicBatchReshapeLinear',
     'EmbedIDFunction',
     'LinearFunction',
 

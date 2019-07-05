@@ -37,6 +37,7 @@ from onnx_chainer.functions.connection import convert_Convolution2DFunction  # N
 from onnx_chainer.functions.connection import convert_ConvolutionND  # NOQA
 from onnx_chainer.functions.connection import convert_Deconvolution2DFunction  # NOQA
 from onnx_chainer.functions.connection import convert_DeconvolutionND  # NOQA
+from onnx_chainer.functions.connection import convert_DynamicBatchReshapeLinear  # NOQA
 from onnx_chainer.functions.connection import convert_EmbedIDFunction  # NOQA
 from onnx_chainer.functions.connection import convert_LinearFunction  # NOQA
 
