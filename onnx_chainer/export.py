@@ -211,7 +211,7 @@ def _export(model, args, filename, export_params, graph_name, save_text,
                 m=MINIMUM_OPSET_VERSION,
                 o=opset_version)
         )
-
+    import onnx_chainer.variable
     # Forward computation
     context = Context(model)
     network_inputs = OrderedDict()
