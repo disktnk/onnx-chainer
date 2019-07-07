@@ -15,20 +15,21 @@ def shape(self):
     # return self.xp.asarray(super(BatchMarkedVariable, self).shape)
     return ShapeVariable(self.array.shape, 0)
 
-_reshape = chainer.Variable.reshape
+_reshape = chainer.functions.reshape
 
-def reshape(*shape):
-    self = shape[0]
-    shape = list(shape[1:])
+def reshape(x, shape):
     print('reshape', shape)
-    for i, s in enumerate(shape):
-        if isinstance(s, ShapeItemVariable):
-            print('danger!!')
-            shape[i] = int(s)
-    return _reshape(self, tuple(shape))
+    if isinstance(shape, tuple):
+        shape = list(shape)
+    if isinstance(shape, list):
+        for i, s in enumerate(shape):
+            if isinstance(s, ShapeItemVariable):
+                print('danger!!')
+                shape[i] = int(s)
+    return _reshape(x, shape)
 
 chainer.Variable.shape = shape
-chainer.Variable.reshape = reshape
+chainer.functions.reshape = reshape
 
 
 class ShapeVariable(object):
@@ -76,33 +77,18 @@ class ShapeVariable(object):
 
 
 class ShapeItemVariable(object):
+
+    # NOTE(disktnk): numbers.Integral is better, but select simple one
+
     def __init__(self, val=0):
+        assert isinstance(val, int)
         self._val = int(val)
-    def __add__(self, val):
-        if isinstance(val, Integer):
-            return Integer(self._val + val._val)
-        return self._val + val
-    def __iadd__(self, val):
-        self._val += val
-        return self
-    def __mul__(self, val):
-        print(';;;;;')
-        return self._val * val
-    def __imul__(self, val):
-        print(';;;;;')
-        self._val *= val
-        return self._val
-    def __str__(self):
-        return str(self._val)
-    def __repr__(self):
-        return 'Integer(%s)' % self._val
-    def __eq__(self, other):
-        return self._val == other
+
     def __int__(self):
         return self._val
 
     def __lt__(self, other):
         return self._val < other
 
-    def __gt__(self, other):
-        return self._val > other
+    def __rmul__(self, other):
+        return self._val * other
