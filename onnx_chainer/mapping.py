@@ -29,6 +29,7 @@ _supported_function_node_set = {
     'Repeat',
     'Reshape',
     'ResizeImages',
+    'Shape',
     'Separate',
     'Space2Depth',
     'SplitAxis',

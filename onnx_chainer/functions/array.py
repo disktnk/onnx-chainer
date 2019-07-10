@@ -211,9 +211,14 @@ def convert_Reshape(func, opset_version, input_names,
             shape=func.shape
         ),
     elif opset_version == 5:
-        shape_name = context.add_param(
-            np.asarray(list(func.shape), dtype=np.int64), 'shape')
-        input_names.append(shape_name)
+        if hasattr(func, 'shape'):
+            assert len(input_names) == 1
+            shape_name = context.add_param(
+                np.asarray(list(func.shape), dtype=np.int64), 'shape')
+            input_names.append(shape_name)
+        else:
+            if len(input_names) != 2:
+                raise ValueError('shape must be set as parameter or 2nd input')
 
         return onnx_helper.make_node(
             'Reshape', input_names, output_names,
@@ -481,3 +486,8 @@ def convert_Separate(func, opset_version, input_names, output_names, context,
         gb.op_output_named(
             'Squeeze', [node_name], [output_names[i]], axes=[func.axis])
     return gb.nodes()
+
+
+def convert_Shape(func, opset_version, input_names, output_names, context,
+                  parameters):
+    return onnx_helper.make_node('Shape', input_names, output_names),

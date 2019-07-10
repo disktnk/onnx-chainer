@@ -262,8 +262,9 @@ def _export(model, args, filename, export_params, graph_name, save_text,
             name, tensor.data_type, tensor.dims))
 
     for name, var in network_inputs.items():
+        shape = [int(s) for s in var.shape]
         input_tensors.append(helper.make_tensor_value_info(
-            name, NP_TYPE_TO_TENSOR_TYPE[var.dtype], var.shape))
+            name, NP_TYPE_TO_TENSOR_TYPE[var.dtype], shape))
 
     if external_converters:
         chainer.utils.experimental('external_converters')
@@ -308,8 +309,9 @@ def _export(model, args, filename, export_params, graph_name, save_text,
     # Convert output tensors
     output_tensors = []
     for name, var in network_outputs.items():
+        shape = [int(s) for s in var.shape]
         output_tensors.append(helper.make_tensor_value_info(
-            name, NP_TYPE_TO_TENSOR_TYPE[var.dtype], var.shape))
+            name, NP_TYPE_TO_TENSOR_TYPE[var.dtype], shape))
 
     if not export_params:
         initializers = []

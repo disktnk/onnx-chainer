@@ -272,8 +272,8 @@ def test_aaa():
     path2 = gen_test_data_set(model, x2, 'aaa2', 10)
     print(path2)
     import os
-    # import shutil
-    # shutil.copy(os.path.join(path, 'model.onnx'), os.path.join(path2, 'model.onnx'))
+    import shutil
+    shutil.copy(os.path.join(path, 'model.onnx'), os.path.join(path2, 'model.onnx'))
 
     check_model_expect(path)
     check_model_expect(path2)
