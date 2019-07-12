@@ -335,7 +335,7 @@ def _export(model, args, filename, export_params, graph_name, save_text,
     model.ir_version = onnx.IR_VERSION
 
     try:
-        checker.check_model(model)
+        print('checker.check_model(model)')
     except onnx.checker.ValidationError as e:
         if external_converters is None:
             raise e

@@ -145,6 +145,9 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
         ret = wrapped.apply(inputs)
         if len(ret) > 1:
             return ret
+        if name == 'Shape':
+            from onnx_chainer.variable import ShapeVariable
+            return ShapeVariable.create(ret[0])
         return ret[0]
 
     chainer.utils.experimental('as_funcnode')

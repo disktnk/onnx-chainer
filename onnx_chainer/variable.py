@@ -9,7 +9,7 @@ from onnx_chainer.replace_func import as_funcnode
 @property
 @as_funcnode('Shape')
 def shape(self):
-    return self.xp.asarray(self.array.shape, dtype=np.float32)
+    return self.xp.asarray(self.array.shape, dtype=np.int64)
 
 
 def __mod__(self, other):
@@ -21,6 +21,7 @@ def __rmod__(self, other):
 
 
 def __rmul__(self, other):
+    print('asss')
     return other * self.array
 
 
@@ -74,12 +75,32 @@ global_xx = []
 
 
 chainer.Variable.shape = shape
-chainer.Variable.__mod__ = __mod__
-chainer.Variable.__rmod__ = __rmod__
-chainer.Variable.__rmul__ = __rmul__
-chainer.Variable.__int__ = __int__
-chainer.Variable.__eq__ = __eq__
-chainer.Variable.__ne__ = __ne__
-chainer.Variable.__lt__ = __lt__
-chainer.Variable.__gt__ = __gt__
+# chainer.Variable.__mod__ = __mod__
+# chainer.Variable.__rmod__ = __rmod__
+# chainer.Variable.__rmul__ = __rmul__
+# chainer.Variable.__int__ = __int__
+# chainer.Variable.__eq__ = __eq__
+# chainer.Variable.__ne__ = __ne__
+# chainer.Variable.__lt__ = __lt__
+# chainer.Variable.__gt__ = __gt__
 chainer.functions.reshape = reshape
+
+
+class ShapeVariable(chainer.Variable):
+    @staticmethod
+    def create(var):
+        target = ShapeVariable()
+        target.__dict__ = var.__dict__
+        target._node = var._node
+        return target
+
+    def __getitem__(self, item):
+        print('get')
+        if isinstance(item, int) and item != 0:
+            print('!!!!!!!!!!!!')
+            return super().__getitem__(item).array
+        return super().__getitem__(item)
+
+    def __iter__(self):
+        print('aaa')
+        return super()
