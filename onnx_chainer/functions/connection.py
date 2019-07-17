@@ -116,31 +116,3 @@ def convert_LinearFunction(func, opset_version, input_names,
         return onnx_helper.make_node(
             'Gemm', input_names, output_names,
             alpha=1.0, beta=1.0, transA=0, transB=1),
-
-
-@support((10,))
-def convert_DynamicBatchReshapeLinear(func, opset_version, input_names,
-                                      output_names, context, parameters):
-    ndim = len(func.inputs[0].shape)
-    if ndim <= 2:
-        return convert_LinearFunction(func, opset_version, input_names, output_names, context, parameters)
-
-    gb = onnx_helper.GraphBuilder()
-    shape = gb.op('Shape', [input_names[0]])
-    axes = [0]
-    starts = [0]
-    ends = [1]
-    slice_inputs = [shape]
-    for param in [('starts', starts), ('ends', ends), ('axes', axes)]:
-        pname = context.add_param(np.asarray(list(param[1]), dtype=np.int64), param[0])
-        slice_inputs.append(pname)
-    shape0 = gb.op('Slice', slice_inputs)
-    # shape0_int = gb.op('Squeeze', [shape0], axes=[0])
-
-    neg1 = context.add_param(np.asarray([-1], dtype=np.int64), 'reshaped_arg1')
-    reshape_arg = gb.op('Concat', [shape0, neg1], axis=0)
-
-    reshaped_x = [gb.op('Reshape', [input_names[0], reshape_arg])]
-    reshaped_x.extend(input_names[1:])
-    linear_node = convert_LinearFunction(func, opset_version, reshaped_x, output_names, context, parameters)
-    return gb.nodes() + linear_node

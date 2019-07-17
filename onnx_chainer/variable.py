@@ -12,42 +12,6 @@ def shape(self):
     return self.xp.asarray(self.array.shape, dtype=np.int64)
 
 
-def __mod__(self, other):
-    return self.array % other
-
-
-def __rmod__(self, other):
-    return other % self.array
-
-
-def __rmul__(self, other):
-    print('asss')
-    return other * self.array
-
-
-def __int__(self):
-    assert len(self.array.shape) == 0
-    return int(self.array)
-
-
-def __eq__(self, other):
-    print(other)
-    print(self.array)
-    return self.array == other
-
-
-def __ne__(self, other):
-    return self.array != other
-
-
-def __gt__(self, other):
-    return self.array > other
-
-
-def __lt__(self, other):
-    return self.array < other
-
-
 org_reshape = chainer.functions.reshape
 
 
@@ -63,30 +27,29 @@ def reshape(x, shape):
             if isinstance(s, chainer.Variable):
                 shape_list.append(s)
             else:
-                ss = chainer.Variable(np.array(s, dtype=np.float32))
-                global_xx.append(ss)
+                ss = chainer.Variable(np.array(s))
+                to_keep_global_variables.append(ss)
                 shape_list.append(ss)
         shape = F.stack(shape_list)
         return dynamic_reshape(x, shape)
     return org_reshape(x, shape)
 
 
-global_xx = []
+@as_funcnode('GetItem', [(1, 'slices')])
+def get_item(x, slices):
+    from chainer import utils
+    return utils.force_array(x.array[slices]),
+
+
+to_keep_global_variables = []
 
 
 chainer.Variable.shape = shape
-# chainer.Variable.__mod__ = __mod__
-# chainer.Variable.__rmod__ = __rmod__
-# chainer.Variable.__rmul__ = __rmul__
-# chainer.Variable.__int__ = __int__
-# chainer.Variable.__eq__ = __eq__
-# chainer.Variable.__ne__ = __ne__
-# chainer.Variable.__lt__ = __lt__
-# chainer.Variable.__gt__ = __gt__
 chainer.functions.reshape = reshape
 
 
 class ShapeVariable(chainer.Variable):
+
     @staticmethod
     def create(var):
         target = ShapeVariable()
@@ -94,13 +57,35 @@ class ShapeVariable(chainer.Variable):
         target._node = var._node
         return target
 
-    def __getitem__(self, item):
-        print('get')
-        if isinstance(item, int) and item != 0:
-            print('!!!!!!!!!!!!')
-            return super().__getitem__(item).array
-        return super().__getitem__(item)
+    def __getitem__(self, slices):
+        if isinstance(slices, list):
+            if all([isinstance(s, int) for s in slices]):
+                slices = slices,
+            slices = tuple(slices)
+        elif not isinstance(slices, tuple):
+            slices = slices,
+        return get_item(self, slices)
 
-    def __iter__(self):
-        print('aaa')
-        return super()
+
+class ShapeItemVariable(chainer.Variable):
+
+    @staticmethod
+    def create(var):
+        if len(var.array.shape) != 0:
+            raise ValueError('item variable must be scalar: {}'.format(var))
+        target = ShapeItemVariable()
+        target.__dict__ = var.__dict__
+        target._node = var._node
+        return target
+
+    def __int__(self):
+        return int(self.array)
+
+    def __mod__(self, other):
+        return self.array % other
+
+    def __truediv__(self, other):
+        return self.array / other
+
+    def __rmul__(self, other):
+        return other * self.array

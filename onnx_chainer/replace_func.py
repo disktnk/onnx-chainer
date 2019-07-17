@@ -34,10 +34,6 @@ class WrappedFunctionNode(chainer.FunctionNode):
         else:
             dummy_results = _unwrap_var(results)
             dummy_results = dummy_results,
-        if not chainer.is_arrays_compatible(dummy_results):
-            raise ValueError(
-                'returned values from the function wrapped by \'as_funcnode\' '
-                'must consist only array, function name: {}'.format(self.name))
         return dummy_results
 
 
@@ -145,9 +141,17 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
         ret = wrapped.apply(inputs)
         if len(ret) > 1:
             return ret
+        # These conditions is in order to handle shape variable
+        from onnx_chainer.variable import ShapeVariable
+        from onnx_chainer.variable import ShapeItemVariable
         if name == 'Shape':
-            from onnx_chainer.variable import ShapeVariable
             return ShapeVariable.create(ret[0])
+        if name == 'GetItem':
+            if isinstance(args[0], ShapeVariable) and len(args[1]) == 1:
+                if isinstance(args[1][0], int):
+                    return ShapeItemVariable.create(ret[0])
+                if isinstance(args[1][0], slice):
+                    return ShapeVariable.create(ret[0])
         return ret[0]
 
     chainer.utils.experimental('as_funcnode')

@@ -265,12 +265,10 @@ def test_aaa():
 
     import onnx_chainer.variable
     path = gen_test_data_set(model, x, 'aaa', 10)
-    print(path)
 
     x2 = np.random.rand(5, 3, 28, 28).astype(np.float32)
     # x2 = VVariable(x2)
     path2 = gen_test_data_set(model, x2, 'aaa2', 10)
-    print(path2)
     import os
     import shutil
     shutil.copy(os.path.join(path, 'model.onnx'), os.path.join(path2, 'model.onnx'))
