@@ -2,19 +2,22 @@ import chainer
 import chainer.functions as F
 import numpy as np
 
-from onnx_chainer import onnx_helper
 from onnx_chainer.replace_func import as_funcnode
 
 
 _to_keep_global_variables = []
-_input_shape = ()
+_org_reshape = chainer.functions.reshape
+_org_shape = chainer.Variable.shape
 
 
-def enable_shape_variable(input_shape):
-    global _input_shape
-    _input_shape = input_shape
+def enable_shape_variable():
     chainer.Variable.shape = _shape
     chainer.functions.reshape = _reshape
+
+
+def clear_shape_variable():
+    chainer.Variable.shape = _org_shape
+    chainer.functions.reshape = _org_reshape
 
 
 def _cast_shape_variable(outputs, in_args, in_kwargs):
@@ -39,9 +42,6 @@ def _shape(self):
     return self.xp.asarray(self.array.shape, dtype=np.int64)
 
 
-org_reshape = chainer.functions.reshape
-
-
 @as_funcnode('Reshape')
 def dynamic_reshape(x, shape):
     # to enable this function node, shape must be variable type.
@@ -60,7 +60,7 @@ def _reshape(x, shape):
                 shape_list.append(ss)
         shape = F.stack(shape_list)
         return dynamic_reshape(x, shape)
-    return org_reshape(x, shape)
+    return _org_reshape(x, shape)
 
 
 @as_funcnode(

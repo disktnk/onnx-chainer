@@ -1,13 +1,21 @@
+import os
+import shutil
+import unittest
+import warnings
+
 import chainer
 import chainer.functions as F
 import chainer.links as L
 from chainer import testing
 import numpy as np
-import unittest
-import warnings
+import onnx
+import pytest
 
 from onnx_chainer import export
+from onnx_chainer.onnx_helper import write_tensor_pb
+from onnx_chainer.testing.get_test_data_set import gen_test_data_set
 from onnx_chainer.testing import input_generator
+from onnx_chainer.testing.test_onnxruntime import check_model_expect
 from tests.helper import ONNXModelTest
 
 
@@ -245,7 +253,10 @@ class TestUnusedLink(ONNXModelTest):
             assert '/l2/W' in str(w[-1].message)
 
 
-def test_aaa():
+def test_enable_shape_var():
+    # convolution2d uses shape, checking no harmful effect under the option
+    # liner uses reshape, takes batch size dynamically, checking the option
+    # works or not.
     model = chainer.Sequential(
         L.Convolution2D(None, 16, 5, 1, 2),
         F.relu,
@@ -259,18 +270,32 @@ def test_aaa():
     )
     x = np.random.rand(10, 3, 28, 28).astype(np.float32)
 
-    from onnx_chainer.testing.get_test_data_set import gen_test_data_set
-    from onnx_chainer.testing.test_onnxruntime import check_model_expect
-    from onnx_chainer.replace_func import as_funcnode
+    opset_ver = int(onnx.defs.onnx_opset_version())
+    with warnings.catch_warnings(record=True):
+        path = gen_test_data_set(model, x, 'test_enable_shape_var', opset_ver)
 
-    import onnx_chainer.variable
-    path = gen_test_data_set(model, x, 'aaa', 10, input_shape=('batch_size',)+(x.shape[1:]))
-
-    x2 = np.random.rand(5, 3, 28, 28).astype(np.float32)
-    path2 = gen_test_data_set(model, x2, 'aaa2', 10)
-    import os
-    import shutil
-    shutil.copy(os.path.join(path, 'model.onnx'), os.path.join(path2, 'model.onnx'))
-
+    test_data_2_dir = os.path.join(path, 'test_data_set_1')
+    if os.path.exists(test_data_2_dir):
+        shutil.rmtree(test_data_2_dir)
     check_model_expect(path)
-    check_model_expect(path2)
+
+    # set test case 2, batch size is changed
+    x2 = np.random.rand(5, 3, 28, 28).astype(np.float32)
+    out2 = model(x2)
+
+    os.makedirs(test_data_2_dir)
+    in_pb_name = os.path.join(test_data_2_dir, 'input_0.pb')
+    write_tensor_pb(in_pb_name, 'Input_0', x2)
+    out_pb_name = os.path.join(test_data_2_dir, 'output_0.pb')
+    write_tensor_pb(out_pb_name, 'Output_0', out2.array)
+
+    # expect to get exception because fixed batch size is set on reshape node
+    with pytest.raises(RuntimeError):
+        check_model_expect(path)
+
+    # generate again with 'enable_shape_var' option, not to set fixed batch
+    with warnings.catch_warnings(record=True):
+        gen_test_data_set(
+            model, x, 'test_enable_shape_var', opset_ver,
+            enable_shape_var=True)
+    check_model_expect(path)
