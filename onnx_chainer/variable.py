@@ -6,8 +6,23 @@ from onnx_chainer import onnx_helper
 from onnx_chainer.replace_func import as_funcnode
 
 
+def cast_shape_variable(outputs, in_args, in_kwargs):
+    assert len(outputs) == 1
+    return ShapeVariable.create(outputs[0])
+
+
+def cast_shape_item_variable(outputs, in_args, in_kwargs):
+    assert len(outputs) == 1
+    if isinstance(in_args[0], ShapeVariable) and len(in_args[1]) == 1:
+        if isinstance(in_args[1][0], int):
+            return ShapeItemVariable.create(outputs[0])
+        if isinstance(in_args[1][0], slice):
+            return ShapeVariable.create(outputs[0])
+    return outputs[0]
+
+
 @property
-@as_funcnode('Shape')
+@as_funcnode('Shape', post_converter=cast_shape_variable)
 def shape(self):
     return self.xp.asarray(self.array.shape, dtype=np.int64)
 
@@ -35,7 +50,9 @@ def reshape(x, shape):
     return org_reshape(x, shape)
 
 
-@as_funcnode('GetItem', [(1, 'slices')])
+@as_funcnode(
+    'GetItem', rename_attributes=[(1, 'slices')],
+    post_converter=cast_shape_item_variable)
 def get_item(x, slices):
     from chainer import utils
     return utils.force_array(x.array[slices]),

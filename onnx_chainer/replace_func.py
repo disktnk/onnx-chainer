@@ -37,7 +37,8 @@ class WrappedFunctionNode(chainer.FunctionNode):
         return dummy_results
 
 
-def fake_as_funcnode(alt_func, name, rename_attributes=None):
+def fake_as_funcnode(
+        alt_func, name, rename_attributes=None, post_converter=None):
     """The target function fakes FunctionNode
 
     The target function is replaced to the alternative function to connect
@@ -80,6 +81,8 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
         rename_attributes (list or tuple): rename attribute name, set list
             of ``tuple(index_of_args, new_name)`` or
             ``tuple(kwargs_name, new_name)``
+        post_converter (func): function to converter outputs from wrapped
+            function. Tuple of outputs, input args, and kwargs are passed.
 
     Returns:
         func: wrapped function, called on exporting.
@@ -139,26 +142,17 @@ def fake_as_funcnode(alt_func, name, rename_attributes=None):
         wrapped = WrappedFunctionNode(
             name, alt_func, args, kwargs, attributes=attributes)
         ret = wrapped.apply(inputs)
+        if post_converter is not None:
+            return post_converter(ret, args, kwargs)
         if len(ret) > 1:
             return ret
-        # These conditions is in order to handle shape variable
-        from onnx_chainer.variable import ShapeVariable
-        from onnx_chainer.variable import ShapeItemVariable
-        if name == 'Shape':
-            return ShapeVariable.create(ret[0])
-        if name == 'GetItem':
-            if isinstance(args[0], ShapeVariable) and len(args[1]) == 1:
-                if isinstance(args[1][0], int):
-                    return ShapeItemVariable.create(ret[0])
-                if isinstance(args[1][0], slice):
-                    return ShapeVariable.create(ret[0])
         return ret[0]
 
     chainer.utils.experimental('as_funcnode')
     return _wrapper
 
 
-def as_funcnode(name, rename_attributes=None):
+def as_funcnode(name, rename_attributes=None, post_converter=None):
     """The target function fakes FunctionNode
 
     The target function is overwrapped to connect variable node by acting
@@ -177,9 +171,13 @@ def as_funcnode(name, rename_attributes=None):
         rename_attributes (list or tuple): rename attribute name, set list
             of ``tuple(index_of_args, new_name)`` or
             ``tuple(kwargs_name, new_name)``
+        post_converter (func): function to converter outputs from wrapped
+            function. Tuple of outputs, input args, and kwargs are passed.
     """
     def _wrapper(fn):
-        return fake_as_funcnode(fn, name, rename_attributes=rename_attributes)
+        return fake_as_funcnode(
+            fn, name, rename_attributes=rename_attributes,
+            post_converter=post_converter)
 
     return _wrapper
 
