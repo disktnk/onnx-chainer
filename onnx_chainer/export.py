@@ -111,8 +111,8 @@ def rename_variable_name(
 def export(model, args, filename=None, export_params=True,
            graph_name='Graph', save_text=False, opset_version=None,
            input_names=None, output_names=None, train=False,
-           return_named_inout=False, external_converters=None,
-           external_opset_imports=None):
+           return_named_inout=False, input_shape=None,
+           external_converters=None, external_opset_imports=None):
     """Export function for chainer.Chain in ONNX format.
 
     This function performs a forward computation of the given
@@ -172,6 +172,7 @@ def export(model, args, filename=None, export_params=True,
         train (bool): If True, output computational graph with train mode.
         return_named_inout (bool): If set True, return ONNX model with named
             inputs, and named outputs.
+        input_shape (tuple): Customized input shape, not take from ``args``.
         external_converters (dict): Add-on converter. Convert functions
             keyed by ~chainer.FunctionNode name.
         external_opset_imports (dict): Import external opset. opset version
@@ -193,12 +194,12 @@ def export(model, args, filename=None, export_params=True,
         return _export(
             model, args, filename, export_params, graph_name, save_text,
             opset_version, input_names, output_names, return_named_inout,
-            external_converters, external_opset_imports)
+            input_shape, external_converters, external_opset_imports)
 
 
 def _export(model, args, filename, export_params, graph_name, save_text,
             opset_version, input_names, output_names, return_named_inout,
-            external_converters, external_opset_imports):
+            input_shape, external_converters, external_opset_imports):
     if opset_version is None:
         opset_version = int(onnx.defs.onnx_opset_version())
     elif opset_version < MINIMUM_OPSET_VERSION:
@@ -211,7 +212,12 @@ def _export(model, args, filename, export_params, graph_name, save_text,
                 m=MINIMUM_OPSET_VERSION,
                 o=opset_version)
         )
-    import onnx_chainer.variable
+
+    if input_shape is not None and \
+            any([isinstance(s, str) for s in input_shape]):
+        from onnx_chainer.variable import enable_shape_variable
+        enable_shape_variable(input_shape)
+
     # Forward computation
     context = Context(model)
     network_inputs = OrderedDict()

@@ -264,7 +264,7 @@ def test_aaa():
     from onnx_chainer.replace_func import as_funcnode
 
     import onnx_chainer.variable
-    path = gen_test_data_set(model, x, 'aaa', 10)
+    path = gen_test_data_set(model, x, 'aaa', 10, input_shape=('batch_size',)+(x.shape[1:]))
 
     x2 = np.random.rand(5, 3, 28, 28).astype(np.float32)
     path2 = gen_test_data_set(model, x2, 'aaa2', 10)

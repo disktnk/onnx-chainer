@@ -6,12 +6,23 @@ from onnx_chainer import onnx_helper
 from onnx_chainer.replace_func import as_funcnode
 
 
-def cast_shape_variable(outputs, in_args, in_kwargs):
+_to_keep_global_variables = []
+_input_shape = ()
+
+
+def enable_shape_variable(input_shape):
+    global _input_shape
+    _input_shape = input_shape
+    chainer.Variable.shape = _shape
+    chainer.functions.reshape = _reshape
+
+
+def _cast_shape_variable(outputs, in_args, in_kwargs):
     assert len(outputs) == 1
     return ShapeVariable.create(outputs[0])
 
 
-def cast_shape_item_variable(outputs, in_args, in_kwargs):
+def _cast_shape_item_variable(outputs, in_args, in_kwargs):
     assert len(outputs) == 1
     if isinstance(in_args[0], ShapeVariable) and len(in_args[1]) == 1:
         if isinstance(in_args[1][0], int):
@@ -22,8 +33,8 @@ def cast_shape_item_variable(outputs, in_args, in_kwargs):
 
 
 @property
-@as_funcnode('Shape', post_converter=cast_shape_variable)
-def shape(self):
+@as_funcnode('Shape', post_converter=_cast_shape_variable)
+def _shape(self):
     return self.xp.asarray(self.array.shape, dtype=np.int64)
 
 
@@ -32,10 +43,11 @@ org_reshape = chainer.functions.reshape
 
 @as_funcnode('Reshape')
 def dynamic_reshape(x, shape):
+    # to enable this function node, shape must be variable type.
     return x.array.reshape(shape.array.astype(np.int64))
 
 
-def reshape(x, shape):
+def _reshape(x, shape):
     if any([isinstance(s, chainer.Variable) for s in shape]):
         shape_list = []
         for s in shape:
@@ -43,7 +55,7 @@ def reshape(x, shape):
                 shape_list.append(s)
             else:
                 ss = chainer.Variable(np.array(s))
-                to_keep_global_variables.append(ss)
+                _to_keep_global_variables.append(ss)
                 shape_list.append(ss)
         shape = F.stack(shape_list)
         return dynamic_reshape(x, shape)
@@ -52,17 +64,10 @@ def reshape(x, shape):
 
 @as_funcnode(
     'GetItem', rename_attributes=[(1, 'slices')],
-    post_converter=cast_shape_item_variable)
-def get_item(x, slices):
+    post_converter=_cast_shape_item_variable)
+def _get_item(x, slices):
     from chainer import utils
     return utils.force_array(x.array[slices]),
-
-
-to_keep_global_variables = []
-
-
-chainer.Variable.shape = shape
-chainer.functions.reshape = reshape
 
 
 class ShapeVariable(chainer.Variable):
@@ -81,7 +86,7 @@ class ShapeVariable(chainer.Variable):
             slices = tuple(slices)
         elif not isinstance(slices, tuple):
             slices = slices,
-        return get_item(self, slices)
+        return _get_item(self, slices)
 
 
 class ShapeItemVariable(chainer.Variable):
