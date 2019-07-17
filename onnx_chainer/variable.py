@@ -24,6 +24,7 @@ def _cast_shape_variable(outputs, in_args, in_kwargs):
 
 def _cast_shape_item_variable(outputs, in_args, in_kwargs):
     assert len(outputs) == 1
+    assert len(in_args) == 2  # input and item
     if isinstance(in_args[0], ShapeVariable) and len(in_args[1]) == 1:
         if isinstance(in_args[1][0], int):
             return ShapeItemVariable.create(outputs[0])
